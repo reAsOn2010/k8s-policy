@@ -1,8 +1,11 @@
 import logging
 import simplejson as json
-from constants import *
+
 from pycalico.datastore import DatastoreClient
 from pycalico.datastore_datatypes import Rules, Rule
+
+from constants import *
+from utils import find_policy_and_apply_to_profile
 
 _log = logging.getLogger("__main__")
 client = DatastoreClient()
@@ -60,10 +63,6 @@ def add_update_namespace(namespace):
     labels = {NS_LABEL_KEY_FMT % k: v for k, v in ns_labels.iteritems()}
     _log.debug("Generated namespace labels: %s", labels)
 
-    # Create the Calico profile to represent this namespace, or
-    # update it if it already exists.
-    client.create_profile(profile_name, rules, labels)
-
     # Create / update the tiered policy object for this namespace.
     selector = "%s == '%s'" % (K8S_NAMESPACE_LABEL, namespace_name)
     name = "calico-%s" % profile_name
@@ -72,6 +71,11 @@ def add_update_namespace(namespace):
                          selector,
                          order=NET_POL_NS_ORDER,
                          rules=rules)
+
+    # Create the Calico profile to represent this namespace, or
+    # update it if it already exists.
+    client.create_profile(profile_name, rules, labels)
+    find_policy_and_apply_to_profile(client, namespace_name)
 
     _log.debug("Created/updated profile for namespace %s", namespace_name)
 

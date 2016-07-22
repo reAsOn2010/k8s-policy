@@ -7,6 +7,7 @@ from pycalico.datastore_datatypes import Rules, Rule
 
 from constants import *
 from policy_parser import PolicyParser
+from utils import find_policy_and_apply_to_profile
 
 _log = logging.getLogger("__main__")
 client = DatastoreClient()
@@ -43,6 +44,7 @@ def add_update_network_policy(policy):
                              selector,
                              order=NET_POL_ORDER,
                              rules=rules)
+        find_policy_and_apply_to_profile(client, policy["metadata"]["namespace"])
         _log.debug("Updated policy '%s' for NetworkPolicy", name)
 
 
@@ -59,5 +61,6 @@ def delete_network_policy(policy):
     # Delete the corresponding Calico policy
     try:
         client.remove_policy(NET_POL_TIER_NAME, name)
+        find_policy_and_apply_to_profile(client, policy["metadata"]["namespace"])
     except KeyError:
         _log.info("Unable to find policy '%s' - already deleted", name)
